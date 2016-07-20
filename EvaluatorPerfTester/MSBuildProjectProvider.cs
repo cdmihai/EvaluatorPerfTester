@@ -9,7 +9,8 @@ namespace EvaluatorPerfTester
     {
         public List<string> GeneratedFiles { get; }
         private string BasePath { get; }
-        public Lazy<IEnumerable<int>> ItemCounts => new Lazy<IEnumerable<int>>(() => GetItemCounts(1000, 1000, 21));
+        //public Lazy<IEnumerable<int>> ItemCounts => new Lazy<IEnumerable<int>>(() => GetLinearItemCounts(1000, 1000, 21));
+        public Lazy<IEnumerable<int>> ItemCounts => new Lazy<IEnumerable<int>>(() => GetExponentialItemCounts(10, 10, 6));
 
         public MSBuildTestProjectProvider()
         {
@@ -53,7 +54,7 @@ namespace EvaluatorPerfTester
             return $"Project_With_{itemCount}_items.proj";
         }
 
-        private IEnumerable<int> GetItemCounts(int start, int step, int repetitions)
+        private IEnumerable<int> GetLinearItemCounts(int start, int step, int repetitions)
         {
             yield return 10;
             yield return 100;
@@ -62,6 +63,14 @@ namespace EvaluatorPerfTester
             for (var i = 0; i < repetitions; i++)
             {
                 yield return start + step*i;
+            }
+        }
+
+        private IEnumerable<int> GetExponentialItemCounts(int start, int exponentBase, int repetitions)
+        {
+            for (var i = 0; i < repetitions; i++)
+            {
+                yield return start * (int) Math.Pow(exponentBase, i);
             }
         }
     }

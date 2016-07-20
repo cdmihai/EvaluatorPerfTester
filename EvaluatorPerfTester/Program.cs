@@ -16,8 +16,8 @@ namespace EvaluatorPerfTester
         static void Main(string[] args)
         {
             var csvHeader = new List<string> {"branch"};
-            var master = new List<string> {"master"};
-            var lazy = new List<string> {"Lazy"};
+            var masterCsvLine = new List<string> {"master"};
+            var lazyCsvLine = new List<string> {"Lazy"};
 
             var projectProvider = new MSBuildTestProjectProvider();
 
@@ -27,18 +27,18 @@ namespace EvaluatorPerfTester
             {
                 projectProvider.ConstructMSBuildProjects();
 
-                master.AddRange(TestEvaluation(@"C:\projects\msbuild\bin\x86\Windows_NT\Debug\", projectProvider));
-                lazy.AddRange(TestEvaluation(@"C:\projects\msbuild_2\bin\x86\Windows_NT\Debug\", projectProvider));
+                masterCsvLine.AddRange(TestEvaluation(@"C:\projects\msbuild_2\bin\x86\Windows_NT\Debug\", projectProvider));
+                lazyCsvLine.AddRange(TestEvaluation(@"C:\projects\msbuild\bin\x86\Windows_NT\Debug\", projectProvider));
             }
             finally
             {
                 projectProvider.DeleteMSBuildProjects();
             }
 
-            PrintCSV(csvHeader, master, lazy);
+            PrintCSV(csvHeader, masterCsvLine, lazyCsvLine);
 
-            Console.WriteLine(master.Aggregate((s1, s2) => s1 + "\t;\t" + s2));
-            Console.WriteLine(lazy.Aggregate((s1, s2) => s1 + "\t;\t" + s2));
+            Console.WriteLine(masterCsvLine.Aggregate((s1, s2) => s1 + "\t;\t" + s2));
+            Console.WriteLine(lazyCsvLine.Aggregate((s1, s2) => s1 + "\t;\t" + s2));
 
             Console.ReadKey();
         }
@@ -52,14 +52,13 @@ namespace EvaluatorPerfTester
                 sb.AppendLine(line.Aggregate((e1, e2) => e1 + "," + e2));
             }
 
-            var csvPath = Path.Combine(Assembly.GetExecutingAssembly().CodeBase, "results.csv");
+            var csvPath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "results.csv");
             File.WriteAllText(csvPath, sb.ToString());
         }
 
         private static List<string> TestEvaluation(string pathToMSBuild, MSBuildTestProjectProvider projectProvider)
         {
             var csvLine = new List<string>(projectProvider.GeneratedFiles.Count);
-
 
             foreach (var projectPath in projectProvider.GeneratedFiles)
             {
