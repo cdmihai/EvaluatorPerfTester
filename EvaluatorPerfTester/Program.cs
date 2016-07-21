@@ -11,7 +11,7 @@ namespace EvaluatorPerfTester
 {
     class Program
     {
-        private static int _repetitionsPerProject = 20;
+        private static int _repetitionsPerProject = 10;
 
         static void Main(string[] args)
         {
@@ -27,8 +27,8 @@ namespace EvaluatorPerfTester
             {
                 projectProvider.ConstructMSBuildProjects();
 
-                masterCsvLine.AddRange(TestEvaluation(@"C:\projects\msbuild_2\bin\x86\Windows_NT\Debug\", projectProvider));
-                lazyCsvLine.AddRange(TestEvaluation(@"C:\projects\msbuild\bin\x86\Windows_NT\Debug\", projectProvider));
+                masterCsvLine.AddRange(TestEvaluation(@"C:\projects\msbuild\bin\x86\Windows_NT\Debug\", projectProvider));
+                lazyCsvLine.AddRange(TestEvaluation(@"C:\projects\msbuild_2\bin\x86\Windows_NT\Debug\", projectProvider));
             }
             finally
             {
@@ -72,7 +72,7 @@ namespace EvaluatorPerfTester
 
         private static double MeasureProjectEvaluation(string pathToMSBuild, string projectPath)
         {
-            var times = new List<int>(_repetitionsPerProject);
+            var times = new List<double>(_repetitionsPerProject);
 
             Console.WriteLine($"Measuring project: {projectPath}");
 
@@ -94,7 +94,7 @@ namespace EvaluatorPerfTester
 
                 watch.Stop();
 
-                times.Add(watch.Elapsed.Milliseconds);
+                times.Add(watch.Elapsed.TotalSeconds);
 
                 AppDomain.Unload(domain);
             }

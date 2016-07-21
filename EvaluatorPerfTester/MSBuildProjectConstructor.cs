@@ -19,6 +19,8 @@ namespace EvaluatorPerfTester
         public string ProjectEnd => @"</Project>";
         private string ItemGroupStart => @"<ItemGroup>";
         public string ItemGroupEnd => @"</ItemGroup>";
+        public Random Random { get; }
+        public double ReferenceItemProbability => 0.4;
 
         //probabilities: item reuse; item referencing
 
@@ -26,7 +28,10 @@ namespace EvaluatorPerfTester
         {
             ItemCount = itemCount;
             ItemNames = new Dictionary<int, string>();
+
+            Random = new Random();
         }
+
 
         public string Construct()
         {
@@ -57,8 +62,26 @@ namespace EvaluatorPerfTester
             var itemFragments = GenerateItemFragments(itemId);
             ItemNames[itemId] = itemName;
 
-            return $"<{itemName} Include=\"{itemFragments.Aggregate((i1, i2) => i1 + ";" + i2)}\"/>";
+            var itemSpec = "";
+
+            if (ReferenceItem())
+            {
+                var itemIdToReference = ItemNames.Keys.ElementAt(Random.Next(0, ItemNames.Count - 1));
+                itemSpec = $"@({ItemNames[itemIdToReference]})";
+            }
+            else
+            {
+                itemSpec = itemFragments.Aggregate((i1, i2) => i1 + ";" + i2);
+            }
+
+            return $"<{itemName} Include=\"{itemSpec}\"/>";
         }
+
+        private bool ReferenceItem()
+        {
+            return Random.NextDouble() < ReferenceItemProbability;
+        }
+
 
         private string GenerateItemName(int itemId)
         {

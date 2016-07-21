@@ -10,7 +10,7 @@ namespace EvaluatorPerfTester
         public List<string> GeneratedFiles { get; }
         private string BasePath { get; }
         //public Lazy<IEnumerable<int>> ItemCounts => new Lazy<IEnumerable<int>>(() => GetLinearItemCounts(1000, 1000, 21));
-        public Lazy<IEnumerable<int>> ItemCounts => new Lazy<IEnumerable<int>>(() => GetExponentialItemCounts(10, 10, 6));
+        public Lazy<IEnumerable<int>> ItemCounts => new Lazy<IEnumerable<int>>(() => GetExponentialItemCounts(10, 10, 5));
 
         public MSBuildTestProjectProvider()
         {
