@@ -19,8 +19,9 @@ namespace EvaluatorPerfTester
         public string ProjectEnd => @"</Project>";
         private string ItemGroupStart => @"<ItemGroup>";
         public string ItemGroupEnd => @"</ItemGroup>";
-        public Random Random { get; }
-        public double ReferenceItemProbability => 0.4;
+        private Random Random { get; }
+        private double ReferenceItemProbability => 0.4;
+        private int ItemsPerItemElement => 1000;
 
         //probabilities: item reuse; item referencing
 
@@ -31,7 +32,6 @@ namespace EvaluatorPerfTester
 
             Random = new Random();
         }
-
 
         public string Construct()
         {
@@ -90,7 +90,7 @@ namespace EvaluatorPerfTester
 
         private IEnumerable<string> GenerateItemFragments(int itemId)
         {
-            for (var i = 0; i < 10; i++)
+            for (var i = 0; i < ItemsPerItemElement; i++)
             {
                 yield return $"i_{itemId}_{i}";
             }
