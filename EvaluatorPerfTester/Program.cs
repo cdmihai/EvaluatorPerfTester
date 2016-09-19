@@ -6,44 +6,113 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using EvaluatorPerfTester.TestProjects;
 
 namespace EvaluatorPerfTester
 {
-    class Program
+    internal class Program
     {
-        private static int _repetitionsPerProject = 10;
+        private const int RepetitionsPerProject = 3;
+        private static readonly string BasePath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 
-        static void Main(string[] args)
+        private static readonly ICollection<TestProject> _testProjects = new TestProject[]
         {
-            var csvHeader = new List<string> {"branch"};
-            var masterCsvLine = new List<string> {"master"};
-            var lazyCsvLine = new List<string> {"Lazy"};
+            //new IncludesScalability(BasePath),
+            //new ItemTypeScalability(BasePath),
+            //new ItemCountFromOneTypeAndIncludeScalability(BasePath),
+            new ItemCountFromMultipleTypesAndIncludes(BasePath), 
+            new ItemReferencingScalabilityOnUniqueItemType(BasePath),
+            new ItemReferencingScalabilityOnDifferentItemTypes(BasePath)
+        };
 
-            var projectProvider = new MSBuildTestProjectProvider();
-
-            csvHeader.AddRange(projectProvider.ItemCounts.Value.Select(i => i.ToString()));
-
-            try
+        private static void Main(string[] args)
+        {
+            if (args.Length == 2)
             {
-                projectProvider.ConstructMSBuildProjects();
-
-                masterCsvLine.AddRange(TestEvaluation(@"C:\projects\msbuild\bin\x86\Windows_NT\Debug\", projectProvider));
-                lazyCsvLine.AddRange(TestEvaluation(@"C:\projects\msbuild_2\bin\x86\Windows_NT\Debug\", projectProvider));
-            }
-            finally
-            {
-                projectProvider.DeleteMSBuildProjects();
+                var oldMsBuild = args[0];
+                var newMsBuild = args[1];
+                RunAnalyses(oldMsBuild, newMsBuild);
+                return;
             }
 
-            PrintCSV(csvHeader, masterCsvLine, lazyCsvLine);
-
-            Console.WriteLine(masterCsvLine.Aggregate((s1, s2) => s1 + "\t;\t" + s2));
-            Console.WriteLine(lazyCsvLine.Aggregate((s1, s2) => s1 + "\t;\t" + s2));
+            switch (args[0])
+            {
+                case "--materialize-projects":
+                    MaterializeProjects();
+                    break;
+                default:
+                    PrintUsage();
+                    break;
+            }
 
             Console.ReadKey();
         }
 
-        private static void PrintCSV(params List<string>[] lines)
+        private static void PrintUsage()
+        {
+            Console.WriteLine("PerfTester --materialize-projects | oldMSBuild newMsBuild ");
+            Console.WriteLine("\toldMsBuild newMsBuild\t paths to the root of the two msbuilds to evaluate; Shold be already built for Debug");
+            Console.WriteLine("\t--materialize-projects\t materialize projects but do not run any analysis");
+        }
+
+        private static void RunAnalyses(string oldMsBuild, string newMsBuild)
+        {
+            try
+            {
+                MaterializeProjects();
+
+                Console.WriteLine();
+                Console.WriteLine($"Old MSBuild: {oldMsBuild}");
+                Console.WriteLine($"New MsBuild {newMsBuild}");
+
+                foreach (var project in _testProjects)
+                {
+                    Console.WriteLine();
+                    Console.WriteLine($"------{project.Name()}------");
+                    RunEvaluationAnalysisFor(project, oldMsBuild, newMsBuild);
+                }
+            }
+            finally
+            {
+                //DeleteProjects();
+            }
+        }
+
+        private static void MaterializeProjects()
+        {
+            Console.WriteLine($"Materializing projects in {BasePath}");
+            foreach (var project in _testProjects)
+            {
+                project.MaterializeProject();
+            }
+        }
+
+        private static void DeleteProjects()
+        {
+            foreach (var project in _testProjects)
+            {
+                project.DeleteProjects();
+            }
+        }
+
+        private static void RunEvaluationAnalysisFor(TestProject testProject, string oldMsBuild, string newMsBuild)
+        {
+            var csvHeader = new List<string> {"MSBuild.Under.Test"};
+            var oldCsvLine = new List<string> {"old"};
+            var newCsvLine = new List<string> {"new"};
+
+            csvHeader.AddRange(testProject.GetProjectDescriptions());
+
+            oldCsvLine.AddRange(TestEvaluation(oldMsBuild, testProject));
+            newCsvLine.AddRange(TestEvaluation(newMsBuild, testProject));
+
+            PrintCSV(testProject.Name(), csvHeader, oldCsvLine, newCsvLine);
+
+            Console.WriteLine(oldCsvLine.Aggregate((s1, s2) => s1 + "\t;\t" + s2));
+            Console.WriteLine(newCsvLine.Aggregate((s1, s2) => s1 + "\t;\t" + s2));
+        }
+
+        private static void PrintCSV(string fileName, params List<string>[] lines)
         {
             var sb = new StringBuilder();
 
@@ -52,15 +121,15 @@ namespace EvaluatorPerfTester
                 sb.AppendLine(line.Aggregate((e1, e2) => e1 + "," + e2));
             }
 
-            var csvPath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "results.csv");
+            var csvPath = Path.Combine(BasePath, $"{fileName}.csv");
             File.WriteAllText(csvPath, sb.ToString());
         }
 
-        private static List<string> TestEvaluation(string pathToMSBuild, MSBuildTestProjectProvider projectProvider)
+        private static List<string> TestEvaluation(string pathToMSBuild, TestProject testProject)
         {
-            var csvLine = new List<string>(projectProvider.GeneratedFiles.Count);
+            var csvLine = new List<string>(testProject.ProjectFiles().Count());
 
-            foreach (var projectPath in projectProvider.GeneratedFiles)
+            foreach (var projectPath in testProject.ProjectFiles())
             {
                 var time = MeasureProjectEvaluation(pathToMSBuild, projectPath);
 
@@ -72,11 +141,11 @@ namespace EvaluatorPerfTester
 
         private static double MeasureProjectEvaluation(string pathToMSBuild, string projectPath)
         {
-            var times = new List<double>(_repetitionsPerProject);
+            var times = new List<double>(RepetitionsPerProject);
 
-            Console.WriteLine($"Measuring project: {projectPath}");
+            Console.WriteLine($"Measuring project: {projectPath}\n With {pathToMSBuild}");
 
-            for (var i = 0; i < _repetitionsPerProject; i++)
+            for (var i = 0; i < RepetitionsPerProject; i++)
             {
                 var domain = AppDomain.CreateDomain(pathToMSBuild);
                 domain.AssemblyResolve += new MSBuildAssemblyResolver(pathToMSBuild).ResolveAssembly;
@@ -121,10 +190,7 @@ namespace EvaluatorPerfTester
                 {
                     return Assembly.LoadFrom(requestedAssembly);
                 }
-                else
-                {
-                    return null;
-                }
+                return null;
             }
         }
     }

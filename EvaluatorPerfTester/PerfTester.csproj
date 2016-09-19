@@ -45,14 +45,24 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="MSBuildProjectConstructor.cs" />
-    <Compile Include="MSBuildProjectProvider.cs" />
+    <Compile Include="TestProject.cs" />
+    <Compile Include="GeneratedTestProject.cs" />
     <Compile Include="Program.cs" />
+    <Compile Include="ProjectBuilder.cs" />
+    <Compile Include="ProjectConfiguration.cs" />
+    <Compile Include="ProjectFileProvider.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TestProjects\ItemCountFromMultipleTypesAndIncludes.cs" />
+    <Compile Include="TestProjects\ItemCountFromOneTypeAndIncludeScalability.cs" />
+    <Compile Include="TestProjects\ItemTypeScalability.cs" />
+    <Compile Include="TestProjects\ItemReferencingScalabilityOnDifferentItemTypes.cs" />
+    <Compile Include="TestProjects\ItemReferencingScalabilityOnUniqueItemType.cs" />
+    <Compile Include="TestProjects\IncludesScalability.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
